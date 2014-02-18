@@ -1,14 +1,14 @@
 Copying tests/userprog/create-null to scratch partition...
-qemu -hda /tmp/fll0QsKSKU.dsk -m 4 -net none -nographic -monitor null
+qemu -hda /tmp/dJBqJAqTqO.dsk -m 4 -net none -nographic -monitor null
 PiLo hda1
-Loading........
+Loading.........
 Kernel command line: -q -f extract run create-null
 Pintos booting with 4,096 kB RAM...
 383 pages available in kernel pool.
 383 pages available in user pool.
 Calibrating timer...  209,510,400 loops/s.
 hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
-hda1: 139 sectors (69 kB), Pintos OS kernel (20)
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
 hda2: 4,096 sectors (2 MB), Pintos file system (21)
 hda3: 99 sectors (49 kB), Pintos scratch (22)
 filesys: using hda2

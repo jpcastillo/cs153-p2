@@ -1,8 +1,8 @@
-Copying tests/userprog/create-normal to scratch partition...
-qemu -hda /tmp/mBW13u1mYr.dsk -m 4 -net none -nographic -monitor null
+Copying tests/userprog/sc-boundary to scratch partition...
+qemu -hda /tmp/qifeZqsn3K.dsk -m 4 -net none -nographic -monitor null
 PiLo hda1
 Loading.........
-Kernel command line: -q -f extract run create-normal
+Kernel command line: -q -f extract run sc-boundary
 Pintos booting with 4,096 kB RAM...
 383 pages available in kernel pool.
 383 pages available in user pool.
@@ -10,21 +10,21 @@ Calibrating timer...  209,510,400 loops/s.
 hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
 hda1: 147 sectors (73 kB), Pintos OS kernel (20)
 hda2: 4,096 sectors (2 MB), Pintos file system (21)
-hda3: 99 sectors (49 kB), Pintos scratch (22)
+hda3: 101 sectors (50 kB), Pintos scratch (22)
 filesys: using hda2
 scratch: using hda3
 Formatting file system...done.
 Boot complete.
 Extracting ustar archive from scratch device into file system...
-Putting 'create-normal' into the file system...
+Putting 'sc-boundary' into the file system...
 Erasing ustar archive...
-Executing 'create-normal':
-Execution of 'create-normal' complete.
+Executing 'sc-boundary':
+Execution of 'sc-boundary' complete.
 Timer: 59 ticks
 Thread: 0 idle ticks, 59 kernel ticks, 0 user ticks
-hda2 (filesys): 26 reads, 202 writes
-hda3 (scratch): 98 reads, 2 writes
-Console: 846 characters output
+hda2 (filesys): 26 reads, 206 writes
+hda3 (scratch): 100 reads, 2 writes
+Console: 840 characters output
 Keyboard: 0 keys pressed
 Exception: 0 page faults
 Powering off...

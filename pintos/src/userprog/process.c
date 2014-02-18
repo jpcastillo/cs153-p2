@@ -24,6 +24,16 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+struct init_proc_struct
+{
+  char * file_name;
+  bool success;
+  struct semaphore *sema_loaded;
+  tid_t parent_tid;
+  block_sector_t current_dir;
+};
+
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -66,8 +76,8 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
-    thread_exit ();
+  if (!success) { printf("--load failed!\n");
+    thread_exit (); }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -199,7 +209,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp, int argc, char **argv);
+static bool setup_stack (void **esp, int argc, char **argv, const char *command_line);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -216,8 +226,9 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
-  bool success = false;
   int i;
+  bool success = false;
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -227,39 +238,26 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
   /*Parse cmd_line for argv, argc*/
   if(cmd_line == "")
 	printf("no command given\n");
-  char **argv = NULL;
+
+
+  /* start arguement parsing from command line */  
+  char *argv[128];
   int argc = 0;
-  if((argv = (char **) malloc(32 * sizeof(char *))) == NULL)
+  char *posptr; char *prog;
+
+  prog = strtok_r(cmd_line," ",&posptr);
+  while(prog != NULL)
   {
-	printf("ERROR in malloc()");
-	ASSERT(argv != NULL);
-  
+    argv[argc] = prog;
+    //printf("ARGV: %s\n",argv[argc]);
+    argc++;
+    argv[argc] = NULL;
+    prog = strtok_r(NULL," ",&posptr);
   }
-  else
-  {
-        int j;
-	for(j = 0; j < 32; ++j)
-	{
-		if((argv[j] = (char *) malloc(128 * sizeof(char))) == NULL )
-		{
-			printf("ERROR in malloc()");
-			ASSERT(argv[j] != NULL);
-		}
-	}
-  }
-  char *tmp = NULL;
-  char *charptr = NULL;
-  tmp = strtok_r(cmd_line, " ", &charptr);
-  for (; argc < 32; ++argc)
-  {
-	if(tmp == NULL)
-		break;
-	else
-	{
-		argv[argc] = tmp;
-	}
-  	tmp = strtok_r(NULL, " ", &charptr);
-  }
+  //printf("ARGC: %d\n",argc);
+  /* end arguement parsing command line */
+
+
   /* Open executable file. */
   file = filesys_open (argv[0]);
   if (file == NULL) 
@@ -267,6 +265,11 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", argv[0]);
       goto done; 
     }
+  //else
+  //{
+    //printf("load: %s: successful open\n",argv[0]);
+  //}
+  file_deny_write(file); // prevent file modify
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -341,7 +344,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp, argc, argv))
+  if (!setup_stack (esp, argc, argv, cmd_line))
     goto done;
 
   /* Start address. */
@@ -350,8 +353,9 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
   success = true;
 
  done:
-  /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  
+ /* We arrive here whether the load is successful or not. */
+  //file_close (file);
   return success;
 }
 
@@ -466,37 +470,84 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp, int argc, char** argv) 
+setup_stack (void **esp, int argc, char** argv, const char *command_line) 
 {
-  
+  uint32_t offset = 0; // a  
   uint8_t *kpage;
+  uint8_t *page = ((uint8_t *) PHYS_BASE) - PGSIZE;
   bool success = false;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  printf("TESTONE\n");
   if (kpage != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      printf("%d", success );
+      memset (kpage, 0, PGSIZE); // a
+      success = install_page (page, kpage, true);
       if (success)
       {
-	printf("TESTTWO\n");
-	 *esp = PHYS_BASE - 12;
-	 *esp -= (argc - 1) * 128;
+	 char *cmd_copy = palloc_get_page(0); // a
+	 if( cmd_copy == NULL )
+	   return false; // a
+	 strlcpy(cmd_copy,command_line,PGSIZE); // a
+	 
+	 *esp = PHYS_BASE;
+
 	 int i;
-	 for(i = 1; i < argc; ++i)
-	 {
-		printf("TESTTHREE\n");
-		memcpy( *esp, argv[i], sizeof(argv[i]) );
-		*esp += 128;
-	 }
+	 for ( i = 0; i < argc; i++ ) {
+	    *esp -= strlen(argv[i]) + 1;
+	    offset += strlen(argv[i]) + 1;
+	    memcpy(*esp, argv[i], strlen(argv[i]) + 1);
+	}
+	char *endArgs = *esp;
+
+	// word align
+	int wordAlignLen = (uint32_t) *esp % 4;
+	*esp -= wordAlignLen;
+	offset += wordAlignLen;
+
+	memset(*esp,0,wordAlignLen);
+
+	// push sentinel
+	*esp -= 4;
+	offset += 4;
+
+	*((uint32_t *) *esp) = 0;
+
+	char *arg = endArgs;
+	uint32_t cnt = 0;
+	while(cnt < argc)
+	{
+	  cnt++;
+	  *esp -= 4;
+	  offset += 4;
+
+	  *((char **) *esp) = arg;
+	  arg = strchr(arg,'\0') + 1;
+	}
+
+	// push &argv
+	*esp -= 4;
+	offset += 4;
+
+	*(( char*** ) *esp) = *esp + 4;
+
+	// push argc
+	*esp -= 4;
+	offset += 4;
+
+	*((uint32_t *) *esp) = argc;
+
+	// push temp address
+	*esp -= 4;
+	offset += 4;
+
+	memset(*esp,0,4);
+
+	palloc_free_page(cmd_copy);
       }
       else
       {
-
-	printf("TEST");
         palloc_free_page (kpage);
-	}
+      }
     }
   return success;
 }
