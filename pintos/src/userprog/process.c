@@ -489,8 +489,8 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	   return false; // a
 	 strlcpy(cmd_copy,command_line,PGSIZE); // a
 	 
-	 *esp = PHYS_BASE;
-
+	 *esp = PHYS_BASE - 12;
+	/*
 	 int i;
 	 for ( i = 0; i < argc; i++ ) {
 	    *esp -= strlen(argv[i]) + 1;
@@ -528,7 +528,7 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	*esp -= 4;
 	offset += 4;
 
-	*(( char*** ) *esp) = *esp + 4;
+	*(( char** ) esp) = *esp + 4;
 
 	// push argc
 	*esp -= 4;
@@ -541,7 +541,7 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	offset += 4;
 
 	memset(*esp,0,4);
-
+	*/
 	palloc_free_page(cmd_copy);
       }
       else
