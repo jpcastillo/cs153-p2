@@ -515,33 +515,38 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	 int t1;
 	 printf("argc = %d\n", argc);
 	 //printf("argv[%d] = %X\n", i, argv[i]);
+	 printf("esp = %X\n", *esp);
 	 for ( i = argc - 1; i >= 0; i--) {
 	    t1 = strlen(argv[i]) + 1;
 	    printf("t1 = %d", t1);
 	    
-	    //*esp -= t1;
-	    //offset += t1;
+	    *esp -= t1;
+	    offset += t1;
 	    printf("argv[%d] = %s\n", i, argv[i]);
-	   // hex_dump(PHYS_BASE - 128, esp, 256, true);
-	    //memcpy(*esp, argv[i], t1);
-	     hex_dump(PHYS_BASE - 128, esp, 256, true);
-	    int j;
-	    *esp--;
-	    *esp = '\0';
-	    for(j = t1 - 1; j <= 0; --j)
-	    {
-		printf("%X\n", argv[i][j]);
-		*esp -= 1;
-		*((char *) *esp) = argv[i][j];   	    	
+	    printf("esp = %X\n", *esp);
+	    hex_dump(PHYS_BASE - 128, esp, 256, true);
+	    memcpy(*esp, argv[i], t1);
+	    printf("esp = %X\n", *esp);
+	    hex_dump(PHYS_BASE - 128, esp, 256, true);
+	    //int j;
+	    //(*esp)--;
+	    printf("esp = %X\n", *esp);
+	    //*((char *) *esp) = '\0';
+	    //for(j = t1 - 1; j <= 0; --j)
+	    //{
+		//printf("%X\n", argv[i][j]);
+		//*esp -= 1;
+		//*((char *) *esp) = argv[i][j];   	    	
 		//memcpy((*esp)++, argv[i][j], 1);
 	    	//*((char *)*esp) = argv[i][j];
 		//*esp++;    
-	    }
+	  //  }
 		//esp -= 1;
 	//	*((char *) *esp) = '\0';
 		//*esp -= t1;
 	}
 	//char *endArgs = *esp;
+	printf("esp = %X\n", *esp);
 	hex_dump(PHYS_BASE - 128, esp, 256, true);
 	printf("\n\n");
 	// word align
@@ -550,13 +555,13 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	offset += wordAlignLen;
 
 	memset(*esp,0,wordAlignLen);
-
+	printf("esp = %X\n", *esp);
 	// push sentinel
 	*esp -= 4;
 	offset += 4;
 
 	memset(*esp,0,4);
-
+	printf("TEST");
 	char * arg = PHYS_BASE; //endArgs;
 	//uint32_t cnt = 0;
 	//while(cnt < argc)
@@ -571,7 +576,7 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	}
 	hex_dump(PHYS_BASE - offset, esp, offset, true);
 	printf("\n\n");
-
+	printf("Push Argv...\n");
 	// push &argv
 	*esp -= 4;
 	offset += 4;
