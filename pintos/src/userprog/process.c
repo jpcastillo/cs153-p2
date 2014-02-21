@@ -241,9 +241,27 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
 
 
   /* start arguement parsing from command line */  
-  char *argv[128];
+  char **argv = NULL;
   int argc = 0;
   char *posptr; char *prog;
+  if((argv = (char **) malloc(32 * sizeof(char *))) == NULL)
+  {
+	printf("ERROR in malloc()");
+	ASSERT(argv != NULL);
+  
+  }
+  else
+  {
+        int j;
+	for(j = 0; j < 32; ++j)
+	{
+		if((argv[j] = (char *) malloc(128 * sizeof(char))) == NULL )
+		{
+			printf("ERROR in malloc()");
+			ASSERT(argv[j] != NULL);
+		}
+	}
+  }
 
   prog = strtok_r(cmd_line," ",&posptr);
   while(prog != NULL)
@@ -484,21 +502,48 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
       success = install_page (page, kpage, true);
       if (success)
       {
+	 
+	printf("\n\n");
 	 char *cmd_copy = palloc_get_page(0); // a
 	 if( cmd_copy == NULL )
 	   return false; // a
 	 strlcpy(cmd_copy,command_line,PGSIZE); // a
 	 
-	 *esp = PHYS_BASE - 12;
-	/*
+	 *esp = PHYS_BASE;
+	 
 	 int i;
-	 for ( i = 0; i < argc; i++ ) {
-	    *esp -= strlen(argv[i]) + 1;
-	    offset += strlen(argv[i]) + 1;
-	    memcpy(*esp, argv[i], strlen(argv[i]) + 1);
+	 int t1;
+	 printf("argc = %d\n", argc);
+	 //printf("argv[%d] = %X\n", i, argv[i]);
+	 for ( i = argc - 1; i >= 0; i--) {
+	    t1 = strlen(argv[i]) + 1;
+	    printf("t1 = %d", t1);
+	    
+	    //*esp -= t1;
+	    //offset += t1;
+	    printf("argv[%d] = %s\n", i, argv[i]);
+	   // hex_dump(PHYS_BASE - 128, esp, 256, true);
+	    //memcpy(*esp, argv[i], t1);
+	     hex_dump(PHYS_BASE - 128, esp, 256, true);
+	    int j;
+	    *esp--;
+	    *esp = '\0';
+	    for(j = t1 - 1; j <= 0; --j)
+	    {
+		printf("%X\n", argv[i][j]);
+		*esp -= 1;
+		*((char *) *esp) = argv[i][j];   	    	
+		//memcpy((*esp)++, argv[i][j], 1);
+	    	//*((char *)*esp) = argv[i][j];
+		//*esp++;    
+	    }
+		//esp -= 1;
+	//	*((char *) *esp) = '\0';
+		//*esp -= t1;
 	}
-	char *endArgs = *esp;
-
+	//char *endArgs = *esp;
+	hex_dump(PHYS_BASE - 128, esp, 256, true);
+	printf("\n\n");
 	// word align
 	int wordAlignLen = (uint32_t) *esp % 4;
 	*esp -= wordAlignLen;
@@ -510,26 +555,29 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	*esp -= 4;
 	offset += 4;
 
-	*((uint32_t *) *esp) = 0;
+	memset(*esp,0,4);
 
-	char *arg = endArgs;
-	uint32_t cnt = 0;
-	while(cnt < argc)
+	char * arg = PHYS_BASE; //endArgs;
+	//uint32_t cnt = 0;
+	//while(cnt < argc)
+	i = 0;
+	for(i = argc - 1; i >= 0; i--)	
 	{
-	  cnt++;
+	  arg -= strlen(argv[i]) + 1;
 	  *esp -= 4;
 	  offset += 4;
-
-	  *((char **) *esp) = arg;
-	  arg = strchr(arg,'\0') + 1;
+	  *((char *) *esp) = arg;
+	  //arg = strchr(arg,'\0') + 1;
 	}
+	hex_dump(PHYS_BASE - offset, esp, offset, true);
+	printf("\n\n");
 
 	// push &argv
 	*esp -= 4;
 	offset += 4;
 
-	*(( char** ) esp) = *esp + 4;
-
+	*(( char** ) *esp) = *esp + 4;
+	
 	// push argc
 	*esp -= 4;
 	offset += 4;
@@ -541,7 +589,8 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	offset += 4;
 
 	memset(*esp,0,4);
-	*/
+	hex_dump(PHYS_BASE - offset, esp, offset, true);
+	printf("\n\n");
 	palloc_free_page(cmd_copy);
       }
       else

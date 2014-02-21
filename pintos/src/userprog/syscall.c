@@ -59,7 +59,7 @@ syscall_handler (struct intr_frame *f)
 		_fd = *x;
 		printf("%X\n", x);
 		x += 1;
-		writebuffer = (char *)x;
+		writebuffer = *x;
 		printf("%X\n", x);
 		x += 1;
 		printf("%u\n", *x);
