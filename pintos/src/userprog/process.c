@@ -99,10 +99,44 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid ) 
 {
-  while(1);
-  return -1;
+  enum intr_level old_level = intr_disable();
+  struct thread * cp = get_child_process(child_tid);
+  intr_set_level(old_level);
+  printf("Done Searching! %X\n", cp);
+  if(cp == NULL)
+  {
+	return -1;
+  }
+  while(cp != NULL)
+  {
+    //busy wait
+    //thread_yield();
+  }
+ int status = cp -> status;
+ //remove_child_process(cp);
+  //while(1);
+  return 0;
+}
+
+struct thread *
+get_child_process(tid_t child_tid)
+{
+struct list_elem *e;
+   ASSERT( intr_get_level() == INTR_OFF );
+   for(e = list_begin(&all_list); e != NULL; e = list_next(e))
+   {
+	struct thread * entry = list_entry(e, struct thread, allelem);
+	printf("lsit_next(e) %X\n",e);
+	printf("entry = %X\n", entry);
+	//if(entry == NULL)
+	   //return NULL;
+	if(entry != NULL && entry->tid == child_tid)
+	   return entry;
+   }
+   //no child
+   return NULL;
 }
 
 /* Free the current process's resources. */
@@ -503,106 +537,83 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
       if (success)
       {
 	 
-	printf("\n\n");
-	 char *cmd_copy = palloc_get_page(0); // a
-	 if( cmd_copy == NULL )
-	   return false; // a
-	 strlcpy(cmd_copy,command_line,PGSIZE); // a
+	// printf("\n\n");
+	 //char *cmd_copy = palloc_get_page(0); // a
+	 //if( cmd_copy == NULL )
+	  // return false; // a
+	// strlcpy(cmd_copy,command_line,PGSIZE); // a
 	 
 	 *esp = PHYS_BASE;
-	 
-	 int i;
-	 int t1;
-	 printf("argc = %d\n", argc);
-	 //printf("argv[%d] = %X\n", i, argv[i]);
+      }
+      else
+      {
+        palloc_free_page (kpage);
+	return success;
+      }
+
+	//push argv contents
+	int i;
+	int t1;
+	 int args[argc];
 	 printf("esp = %X\n", *esp);
-	 for ( i = argc - 1; i >= 0; i--) {
+	 for ( i = argc - 1; i >= 0; i--)
+	 {
 	    t1 = strlen(argv[i]) + 1;
-	    printf("t1 = %d", t1);
-	    
 	    *esp -= t1;
 	    offset += t1;
-	    printf("argv[%d] = %s\n", i, argv[i]);
-	    printf("esp = %X\n", *esp);
-	    hex_dump(PHYS_BASE - 128, esp, 256, true);
 	    memcpy(*esp, argv[i], t1);
-	    printf("esp = %X\n", *esp);
-	    hex_dump(PHYS_BASE - 128, esp, 256, true);
-	    //int j;
-	    //(*esp)--;
-	    printf("esp = %X\n", *esp);
-	    //*((char *) *esp) = '\0';
-	    //for(j = t1 - 1; j <= 0; --j)
-	    //{
-		//printf("%X\n", argv[i][j]);
-		//*esp -= 1;
-		//*((char *) *esp) = argv[i][j];   	    	
-		//memcpy((*esp)++, argv[i][j], 1);
-	    	//*((char *)*esp) = argv[i][j];
-		//*esp++;    
-	  //  }
-		//esp -= 1;
-	//	*((char *) *esp) = '\0';
-		//*esp -= t1;
+	    args[i] = *esp;
 	}
-	//char *endArgs = *esp;
-	printf("esp = %X\n", *esp);
-	hex_dump(PHYS_BASE - 128, esp, 256, true);
-	printf("\n\n");
+
+
 	// word align
 	int wordAlignLen = (uint32_t) *esp % 4;
 	*esp -= wordAlignLen;
 	offset += wordAlignLen;
-
 	memset(*esp,0,wordAlignLen);
-	printf("esp = %X\n", *esp);
+
 	// push sentinel
 	*esp -= 4;
 	offset += 4;
-
 	memset(*esp,0,4);
-	printf("TEST");
-	char * arg = PHYS_BASE; //endArgs;
-	//uint32_t cnt = 0;
-	//while(cnt < argc)
-	i = 0;
+
+	//push address of argv[i]
 	for(i = argc - 1; i >= 0; i--)	
 	{
-	  arg -= strlen(argv[i]) + 1;
 	  *esp -= 4;
 	  offset += 4;
-	  *((char *) *esp) = arg;
-	  //arg = strchr(arg,'\0') + 1;
+	  //*esp = args[i];
+	  memcpy(*esp, &args[i], sizeof(char *));
+	 // hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+	  //printf("args[%d] = %X", i, args[i]);
 	}
-	hex_dump(PHYS_BASE - offset, esp, offset, true);
-	printf("\n\n");
-	printf("Push Argv...\n");
+	//printf("\n\n");
+	//printf("Push Argv...\n");
+	//hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
 	// push &argv
+	char * addr = *esp;	
+	//printf("esp = %X\n", *esp);
 	*esp -= 4;
 	offset += 4;
-
-	*(( char** ) *esp) = *esp + 4;
-	
+	memcpy(*esp,&addr, 4);
+	//hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
 	// push argc
 	*esp -= 4;
 	offset += 4;
-
-	*((uint32_t *) *esp) = argc;
+	//printf("argc = %d\n", (int)argc);
+	//*((uint32_t *) *esp) = argc;
+	memcpy(*esp, &argc, sizeof(argc));
+	
 
 	// push temp address
 	*esp -= 4;
 	offset += 4;
 
 	memset(*esp,0,4);
-	hex_dump(PHYS_BASE - offset, esp, offset, true);
-	printf("\n\n");
-	palloc_free_page(cmd_copy);
-      }
-      else
-      {
-        palloc_free_page (kpage);
-      }
-    }
+	//hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+//	printf("\n\n");
+//	palloc_free_page(cmd_copy);
+   }
   return success;
 }
 

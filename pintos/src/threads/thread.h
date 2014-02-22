@@ -5,6 +5,8 @@
 #include <list.h>
 #include <stdint.h>
 
+static struct list all_list;
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
