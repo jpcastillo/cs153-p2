@@ -209,6 +209,15 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  #ifdef USERPROG
+  list_init(&t->children);
+  if(thread_current() != initial_thread)
+  	list_push_back(&thread_current() -> children, &t -> children_elem);
+  t -> exit_status = 0;
+  t -> parent = thread_current();
+  t -> exit = false;
+  t -> wait = false;
+  #endif
   return tid;
 }
 
@@ -298,8 +307,10 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
+  thread_current() -> exit = true;
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
+
   schedule ();
   NOT_REACHED ();
 }

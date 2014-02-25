@@ -21,12 +21,14 @@ syscall_handler (struct intr_frame *f)
   unsigned int _size;
   
   unsigned int * x = f-> esp;
-  printf ("system call!\n");
+  //printf ("system call!\n");
   if( *x == SYS_HALT)  {
 		printf("HALT");
   }
   else if(*x ==  SYS_EXIT) {
-		printf("EXIT");
+ 		x += sizeof(int);
+		S__EXIT(*x);
+		//printf("EXIT");
   }
    else if(*x ==  SYS_WAIT) {
 		printf("WAIT");
@@ -54,15 +56,15 @@ syscall_handler (struct intr_frame *f)
 		f -> eax = S__READ(_fd, readbuffer, _size);
   }
  else if(*x ==  SYS_WRITE) {
-		printf("WRITE\n");
+		//printf("WRITE\n");
 		x += 1;
 		_fd = *x;
-		printf("%X\n", x);
+		//printf("%X\n", x);
 		x += 1;
 		writebuffer = *x;
-		printf("%X\n", x);
+		//printf("%X\n", x);
 		x += 1;
-		printf("%u\n", *x);
+		//printf("%u\n", *x);
 		_size = *x;
 		f -> eax = S__WRITE(_fd, writebuffer, _size); 
   }
@@ -81,7 +83,7 @@ syscall_handler (struct intr_frame *f)
 
   //asm volatile ("call %1; ret;" :"=r" (&f->eax) : "g" (&f->esp));
   
-  thread_exit ();
+  //thread_exit ();
 }
 
 
@@ -100,12 +102,30 @@ int S__WRITE(unsigned int fd, const void * buffer, unsigned int size)
 	//printf("WRITE");
 	if (fd != 1)
 	{
-		printf("%d", fd);
+		//printf("%d", fd);
 		return 0; //ERROR
 	}
 	
 	putbuf(buffer, size);
-	printf("DONE\n");
 	return size;
 
 }
+
+void S__EXIT(int status)
+{
+	struct thread *cur = thread_current();
+	struct thread *entry = NULL;
+	struct list_elem *e = NULL;
+	for(e = list_begin(&cur -> children); e != list_end(&cur -> children); e = list_next(e))
+   	{
+		entry = list_entry(e, struct thread, children_elem);
+		if(entry != NULL && entry -> parent == cur)
+	  	{
+			entry -> parent = NULL;
+			entry -> status = status;
+		}
+ 	}
+	printf ("%s: exit(%d)\n", cur->name, status);
+	process_exit();
+}
+

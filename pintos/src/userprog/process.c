@@ -101,38 +101,42 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid ) 
 {
+  while(1);
   enum intr_level old_level = intr_disable();
   struct thread * cp = get_child_process(child_tid);
   intr_set_level(old_level);
   printf("Done Searching! %X\n", cp);
   if(cp == NULL)
-  {
 	return -1;
-  }
-  while(cp != NULL)
+  if(cp -> status == THREAD_DYING)
+	return -1;
+  cp -> wait = true;
+  while(!cp->exit)
   {
-    //busy wait
-    //thread_yield();
-  }
+	//
+  } 
  int status = cp -> status;
- //remove_child_process(cp);
-  //while(1);
-  return 0;
+ list_remove(&cp -> children_elem);
+ return status;
 }
 
 struct thread *
 get_child_process(tid_t child_tid)
 {
-struct list_elem *e;
-   ASSERT( intr_get_level() == INTR_OFF );
-   for(e = list_begin(&all_list); e != NULL; e = list_next(e))
+   struct list_elem *e = NULL;
+   struct thread * entry = NULL;
+   struct thread * cur = thread_current();
+   //ASSERT( intr_get_level() == INTR_OFF );
+   for(e = list_begin(&cur -> children); e != list_end(&cur -> children); e = list_next(e))
    {
-	struct thread * entry = list_entry(e, struct thread, allelem);
-	printf("lsit_next(e) %X\n",e);
-	printf("entry = %X\n", entry);
+	entry = list_entry(e, struct thread, children_elem);
+	//printf("lsit_next(e) %X\n",e);
+	//printf("entry = %X\n", entry);
 	//if(entry == NULL)
 	   //return NULL;
-	if(entry != NULL && entry->tid == child_tid)
+	printf("Entry = %X\n", entry);
+	printf("Cur = %X\n", cur);
+	if(entry != NULL && entry->tid == child_tid && entry -> parent == cur && !entry -> wait)
 	   return entry;
    }
    //no child
@@ -531,7 +535,7 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
-    {
+  {
       memset (kpage, 0, PGSIZE); // a
       success = install_page (page, kpage, true);
       if (success)
@@ -613,7 +617,7 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	//hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
 //	printf("\n\n");
 //	palloc_free_page(cmd_copy);
-   }
+  }
   return success;
 }
 
