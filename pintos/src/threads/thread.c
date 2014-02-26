@@ -204,20 +204,24 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
-  intr_set_level (old_level);
 
-  /* Add to run queue. */
-  thread_unblock (t);
-
-  #ifdef USERPROG
-  list_init(&t->children);
-  if(thread_current() != initial_thread)
+   #ifdef USERPROG
+  //if(thread_current() != initial_thread)
   	list_push_back(&thread_current() -> children, &t -> children_elem);
   t -> exit_status = 0;
   t -> parent = thread_current();
   t -> exit = false;
   t -> wait = false;
+  t -> argv = NULL;
+  t -> argc = 0;
   #endif
+
+
+  intr_set_level (old_level);
+  /* Add to run queue. */
+  thread_unblock (t);
+
+  
   return tid;
 }
 
@@ -473,13 +477,18 @@ init_thread (struct thread *t, const char *name, int priority)
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
-
+  //printf("name = %s\n", name);
   memset (t, 0, sizeof *t);
+  
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
+  //printf("tname = %s\n", t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  #ifdef USERPROG
+  list_init(&t->children);
+  #endif
   list_push_back (&all_list, &t->allelem);
 }
 

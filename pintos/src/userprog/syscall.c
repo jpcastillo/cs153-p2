@@ -125,7 +125,21 @@ void S__EXIT(int status)
 			entry -> status = status;
 		}
  	}
-	printf ("%s: exit(%d)\n", cur->name, status);
-	process_exit();
+   	cur->exit = true;
+        //if(!cur -> argv)
+	printf ("%s: exit(%d)\n", cur -> argv, status);
+	//else
+	//{
+	//	printf ("%s", cur->name);
+	//	int i;
+	//	for(i = 1; i < cur -> argc - 1 && i < 4; ++i)
+	//	{
+	//		printf(" %s", cur -> argv[i]);
+	//	}
+	//	printf (": exit(%d)\n", status);
+
+	//}	
+	thread_exit();
+	  //DEBUG
 }
 

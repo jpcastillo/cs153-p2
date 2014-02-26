@@ -104,6 +104,8 @@ struct thread
     bool wait;
     int exit_status;
     bool exit;
+    char ** argv;
+    int argc;
 #endif
 
     /* Owned by thread.c. */
