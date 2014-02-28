@@ -118,7 +118,6 @@ process_wait (tid_t child_tid )
 	//printf("HELLO\n");	
 	//
   } 
- int status = cp -> exit_status;
  int status = cp -> status;
  //list_remove(&cp -> children_elem);
  return status;

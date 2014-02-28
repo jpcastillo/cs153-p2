@@ -131,45 +131,7 @@ syscall_handler (struct intr_frame *f)
 		_size = *x;
 		f -> eax = S__READ(KTH_ARG(f, 1, int), KTH_ARG(f, 2, const char *), KTH_ARG(f,3,unsigned int));
   		break;
-  	case SYS_WRITE:
-		
-  
-  unsigned int * x = f-> esp;
-  //printf ("system call!\n");
-  if( *x == SYS_HALT)  {
-		printf("HALT");
-  }
-  else if(*x ==  SYS_EXIT) {
- 		x += sizeof(int);
-		S__EXIT(*x);
-		//printf("EXIT");
-  }
-   else if(*x ==  SYS_WAIT) {
-		printf("WAIT");
-  }
- else if(*x ==  SYS_CREATE) {
-		printf("CREATE");
-  }
- else if(*x ==  SYS_REMOVE) {
-		printf("REMOVE");
-  }
- else if(*x ==  SYS_OPEN) {
-		printf("OPEN");
-  }
- else if(*x ==  SYS_FILESIZE) {
-		printf("FILESIZE");
-  }
- else if(*x ==  SYS_READ) {
-		printf("READ");
-		x += sizeof(int);
-		_fd = *x;
-		x += 1;
-		readbuffer = x;
-		x += sizeof(unsigned);
-		_size = *x; 
-		f -> eax = S__READ(_fd, readbuffer, _size);
-  }
- else if(*x ==  SYS_WRITE) {
+  	case SYS_WRITE:  
 		//printf("WRITE\n");
 		x += 1;
 		_fd = *x;
@@ -307,34 +269,9 @@ int S__READ(int fd, void * buffer, unsigned int size) // jpc20140225
 		lock_release(&f_lock);
 		return s;
 	}
-  }
-   else if(*x ==  SYS_SEEK) {
-		printf("SEEK");
-  }
-   else if(*x ==  SYS_TELL) {
-		printf("TELL");
-  }
-   else if(*x ==  SYS_CLOSE) {
-		printf("CLOSE");
-  }
-  else {
-	printf("ERROR");
-  }
-
-  //asm volatile ("call %1; ret;" :"=r" (&f->eax) : "g" (&f->esp));
-  
-  //thread_exit ();
-}
-
-
-int S__READ( int fd, void * buffer, unsigned size)
-{
-	ASSERT ( buffer != NULL && buffer > PHYS_BASE );
-	//while
-	return -1;
-
 
 }
+
 
 int S__WRITE(unsigned int fd, const void * buffer, unsigned int size)
 {
@@ -591,9 +528,3 @@ struct FD getFileFromFDS(int fd)
         }
 	return f;
 }
-
-	//}	
-	thread_exit();
-	  //DEBUG
-}
-
