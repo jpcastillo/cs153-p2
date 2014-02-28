@@ -4,7 +4,6 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-<<<<<<< HEAD
 #include "devices/shutdown.h"
 
 #include "filesys/file.h"
@@ -49,9 +48,7 @@ int getPagePtr(const void * v_ptr);
 void getArgs ( struct intr_frame * f, int * args, int n);
 
 
-=======
 static void syscall_handler (struct intr_frame *);
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
 
 void
 syscall_init (void) 
@@ -62,15 +59,11 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-<<<<<<< HEAD
   validArg(f,0);
-=======
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
   unsigned int _fd;
   void * readbuffer;
   void * writebuffer;
   unsigned int _size;
-<<<<<<< HEAD
   int args[4];
 	
   if (init == 0)
@@ -140,7 +133,6 @@ syscall_handler (struct intr_frame *f)
   		break;
   	case SYS_WRITE:
 		
-=======
   
   unsigned int * x = f-> esp;
   //printf ("system call!\n");
@@ -178,7 +170,6 @@ syscall_handler (struct intr_frame *f)
 		f -> eax = S__READ(_fd, readbuffer, _size);
   }
  else if(*x ==  SYS_WRITE) {
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
 		//printf("WRITE\n");
 		x += 1;
 		_fd = *x;
@@ -190,7 +181,6 @@ syscall_handler (struct intr_frame *f)
 		//printf("%u\n", *x);
 		_size = *x;
 		f -> eax = S__WRITE(_fd, writebuffer, _size); 
-<<<<<<< HEAD
   		break;
   	case SYS_SEEK:
 		validArg(f,1);
@@ -317,7 +307,6 @@ int S__READ(int fd, void * buffer, unsigned int size) // jpc20140225
 		lock_release(&f_lock);
 		return s;
 	}
-=======
   }
    else if(*x ==  SYS_SEEK) {
 		printf("SEEK");
@@ -345,12 +334,10 @@ int S__READ( int fd, void * buffer, unsigned size)
 	return -1;
 
 
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
 }
 
 int S__WRITE(unsigned int fd, const void * buffer, unsigned int size)
 {
-<<<<<<< HEAD
 	unsigned int s = size;
 	//ASSERT ( buffer != NULL && buffer > PHYS_BASE);
 	//printf("WRITE");
@@ -396,7 +383,6 @@ int S__WRITE(unsigned int fd, const void * buffer, unsigned int size)
 //	}
 	lock_release(&f_lock);
 	return s;
-=======
 	//ASSERT ( buffer != NULL && buffer > PHYS_BASE);
 	//printf("WRITE");
 	if (fd != 1)
@@ -408,7 +394,6 @@ int S__WRITE(unsigned int fd, const void * buffer, unsigned int size)
 	putbuf(buffer, size);
 	return size;
 
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
 }
 
 void S__EXIT(int status)
@@ -426,11 +411,8 @@ void S__EXIT(int status)
 		}
  	}
    	cur->exit = true;
-<<<<<<< HEAD
     //if(!cur -> argv)
-=======
         //if(!cur -> argv)
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
 	printf ("%s: exit(%d)\n", cur -> argv, status);
 	//else
 	//{
@@ -441,7 +423,6 @@ void S__EXIT(int status)
 	//		printf(" %s", cur -> argv[i]);
 	//	}
 	//	printf (": exit(%d)\n", status);
-<<<<<<< HEAD
 	//}	
 	thread_exit();
 }
@@ -610,11 +591,9 @@ struct FD getFileFromFDS(int fd)
         }
 	return f;
 }
-=======
 
 	//}	
 	thread_exit();
 	  //DEBUG
 }
 
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4

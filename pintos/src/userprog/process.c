@@ -118,11 +118,8 @@ process_wait (tid_t child_tid )
 	//printf("HELLO\n");	
 	//
   } 
-<<<<<<< HEAD
  int status = cp -> exit_status;
-=======
  int status = cp -> status;
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
  //list_remove(&cp -> children_elem);
  return status;
 }
@@ -146,13 +143,10 @@ get_child_process(tid_t child_tid)
 	//printf("entry = %X\n", entry);
 	//if(entry == NULL)
 	   //return NULL;
-<<<<<<< HEAD
 	printf("Entry = %X\n", entry);
 	printf("Cur = %X\n", cur);
-=======
 	//printf("Entry = %X\n", entry);
 	//printf("Cur = %X\n", cur);
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
 	if(entry != NULL && entry->tid == child_tid && entry -> parent == cur && !entry -> wait)
 	   return entry;
    }
@@ -160,10 +154,7 @@ get_child_process(tid_t child_tid)
    //no child
    return NULL;
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> 61ca408b2903a0d379b6a7b4e785c67302d106d4
 /* Free the current process's resources. */
 void
 process_exit (void)
