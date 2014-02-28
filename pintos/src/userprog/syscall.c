@@ -29,9 +29,9 @@ struct FD
 #define MAX_FDS 128
 static struct FD fds[MAX_FDS]; // keep track of open fds
 static int init = 0;
-struct FD getFileFromFDS(int fd);
 static void syscall_handler (struct intr_frame *);
 static struct lock f_lock;
+
 int S__CREATE(const char *file, unsigned int size);
 int S__READ(int fd, void * buffer, unsigned int size);
 int S__WRITE(unsigned int fd, const void * buffer, unsigned int size);
@@ -41,11 +41,14 @@ int S__OPEN(const char *file_name);
 int S__TELL(int fd);
 int S__WAIT(tid_t pid);
 int S__EXEC(const char *cmd_line);
-void validString ( const void * str);
+int S__REMOVE(const char * file);
+
+void validString(const void * str);
 void validArg(struct intr_frame *f, int n);
 int validPtr(const void * ptr);
 int getPagePtr(const void * v_ptr);
-void getArgs ( struct intr_frame * f, int * args, int n);
+void getArgs(struct intr_frame * f, int * args, int n);
+struct FD getFileFromFDS(int fd);
 
 
 static void syscall_handler (struct intr_frame *);
@@ -90,39 +93,33 @@ syscall_handler (struct intr_frame *f)
   switch(*x)
   {
   	case SYS_HALT:
-		//printf("HALT");
  		shutdown_power_off(); // defined in shutdown.h
   		break;
   	case SYS_EXIT:
- 		x += sizeof(int);
-		S__EXIT(*x);
+		validArg(f,1);
+		S__EXIT(KTH_ARG(f,1,int));
   		break;
   	case SYS_WAIT:
-		//printf("WAIT.");
 		validArg(f,1);
-		S__WAIT(KTH_ARG(f,1,tid_t));
+		f->eax = S__WAIT(KTH_ARG(f,1,tid_t));
   		break;
   	case SYS_CREATE:
-		//printf("CREATE");
 		getArgs(f,args,2);
        		 validString( (const void *) args[0] ); // check for null files and stuff
         	f->eax = S__CREATE( (const char*)args[0], (unsigned int) args[1] );
   		break;
   	case SYS_REMOVE:
-		printf("REMOVE");
-  		break;
+  		f->eax = S__REMOVE(KTH_ARG(f,1,const char *));
+		break;
   	case SYS_OPEN:
-		//printf("OPEN");
   		validArg(f,1);
 		f->eax = S__OPEN(KTH_ARG(f,1,const char *));
   		break;
   	case SYS_FILESIZE:
-		//printf("FILESIZE");
   		validArg(f,1);
       		f->eax = S__FILESIZE(KTH_ARG(f,1,int));
   		break;
   	case SYS_READ:
-		//printf("READ");
 		x += sizeof(int);
 		_fd = *x;
 		x += 1;
@@ -132,23 +129,22 @@ syscall_handler (struct intr_frame *f)
 		f -> eax = S__READ(KTH_ARG(f, 1, int), KTH_ARG(f, 2, const char *), KTH_ARG(f,3,unsigned int));
   		break;
   	case SYS_WRITE:  
-		//printf("WRITE\n");
-		x += 1;
-		_fd = *x;
-		//printf("%X\n", x);
-		x += 1;
-		writebuffer = *x;
-		//printf("%X\n", x);
-		x += 1;
-		//printf("%u\n", *x);
-		_size = *x;
-		f -> eax = S__WRITE(_fd, writebuffer, _size); 
+//		x += 1;
+//		_fd = *x;
+//		x += 1;
+//		writebuffer = *x;
+//		x += 1;
+//		_size = *x;
+		validArg(f,1);
+		validArg(f,2);
+		validArg(f,3);
+		f -> eax = S__WRITE(KTH_ARG(f,1,unsigned int), KTH_ARG(f,2,void *), KTH_ARG(f,3,unsigned int)); 
+//		f -> eax = S__WRITE(_fd, writebuffer, _size); 
   		break;
   	case SYS_SEEK:
 		validArg(f,1);
 		validArg(f,2);
 		S__SEEK(KTH_ARG(f,1,int), KTH_ARG(f,2,unsigned int));
-//		printf("SEEK.");
   		break;
   	case SYS_TELL:
 		//printf("TELL");
@@ -158,15 +154,12 @@ syscall_handler (struct intr_frame *f)
   	case SYS_CLOSE:
 		validArg(f,1);
 		S__CLOSE(KTH_ARG(f,1,int));
-	//	printf("CLOSE.");
   		break;
     case SYS_EXEC:
-    	//printf("EXEC.");
    	validArg(f,1);
-	S__EXEC(KTH_ARG(f, 1, const char *));
+	f->eax = S__EXEC(KTH_ARG(f, 1, const char *));
 	break;
     default:
-		//printf("UNDEFINED_SYSCALL.");
   	S__EXIT(-1);
 }
 
@@ -178,8 +171,14 @@ syscall_handler (struct intr_frame *f)
 *	SYSTEM CALL functions below
 ********************************************************************/
 
+int S__REMOVE(const char * file)
+{
+	validString(file);
+	return filesys_remove(file);
+}
 int S__CREATE(const char *file, unsigned int size)
 {
+	validString(file);
   	return (int)filesys_create(file,size);
 }
 
@@ -193,9 +192,6 @@ int S__EXEC(const char *cmd_line)
 	int ret = process_execute(cmd_line);
 	lock_release(&f_lock);
 	if (ret != TID_ERROR);
-	//	process_wait(ret);
-		//printf("s = %d\n", s)
-		//S__EXIT(0);//process_wait(ret);
 	return ret;
 
 }
@@ -219,7 +215,8 @@ void S__CLOSE(int fd)
                // printf("fds[i].fd = %d", fds[i].fd);
                 if (fds[i].fd == fd)
                 {
-                        fds[i].fd_file  = NULL;
+        		struct FD getFileFromFDS(int fd);
+                	fds[i].fd_file  = NULL;
 			fds[i].fd = -1;
                         break;
                 }
@@ -230,19 +227,12 @@ int S__READ(int fd, void * buffer, unsigned int size) // jpc20140225
 {
 
 	// consider implementing a lock on stdin/stdout
-	//ASSERT ( buffer != NULL && validPtr(buffer) );
-	//unsigned int s = size;
 	lock_acquire(&f_lock);
 	if (validPtr(buffer)==0|| fd == 1 || fd < 0 || fd > MAX_FDS - 1)
 	{
-	//	printf("PTR ERROR\n fd = %d\n", fd);
 		lock_release(&f_lock);
 		S__EXIT(-1);//return -1;
 	}
-	//if (size==0)
-	//{
-	//	return 0;
-///	}
 	if (fd==0)//stdin
 	{
 		char c; // tmp to store character from stdin
@@ -276,55 +266,29 @@ int S__READ(int fd, void * buffer, unsigned int size) // jpc20140225
 int S__WRITE(unsigned int fd, const void * buffer, unsigned int size)
 {
 	unsigned int s = size;
-	//ASSERT ( buffer != NULL && buffer > PHYS_BASE);
-	//printf("WRITE");
 	lock_acquire(&f_lock);
-	if(validPtr(buffer) == 0 )
+	if(validPtr(buffer) == 0)// || !is_user_vaddr(buffer) || !is_user_vaddr(buffer+size))
 	{
-	//	printf("PTR ERROR\n");
 		lock_release(&f_lock);
 		S__EXIT(-1); //ERROR
 	}
-//	if (fd == 0)// consider allowing write to other FDs
-//	{
-		//printf("%d", fd);
-//		S__EXIT(-1); //ERROR
-//	}
 	if (fd == 1)
 	{
 		putbuf(buffer, size);
 		lock_release(&f_lock);
 		return size;
 	}
-//	if(fd > MAX_FDS || fd < 0)
-//	{
-//		S__EXIT(-1);
-//	}
 	struct FD f =  getFileFromFDS(fd);
 	if(f.fd_file == NULL || f.fd < 2 || f.fd > MAX_FDS - 1)
         {
-	//	printf("OTHER ERROR\n");
 		lock_release(&f_lock);
-               // printf("s = %d", s);
                 S__EXIT(-1); //ERROR
         }
-	//if(fds[fd].fd_file == -1)
-//	{	
-//		S__EXIT(-1);
-//	}
-//	else
-//	{
-	//   printf("s = %d", s);
-	   s = file_write(f.fd_file, buffer, size);
-	//   printf("s = %d", s);
-//	}
+	s = file_write(f.fd_file, buffer, size);
 	lock_release(&f_lock);
 	return s;
-	//ASSERT ( buffer != NULL && buffer > PHYS_BASE);
-	//printf("WRITE");
 	if (fd != 1)
 	{
-		//printf("%d", fd);
 		return 0; //ERROR
 	}
 	
@@ -348,19 +312,7 @@ void S__EXIT(int status)
 		}
  	}
    	cur->exit = true;
-    //if(!cur -> argv)
-        //if(!cur -> argv)
 	printf ("%s: exit(%d)\n", cur -> argv, status);
-	//else
-	//{
-	//	printf ("%s", cur->name);
-	//	int i;
-	//	for(i = 1; i < cur -> argc - 1 && i < 4; ++i)
-	//	{
-	//		printf(" %s", cur -> argv[i]);
-	//	}
-	//	printf (": exit(%d)\n", status);
-	//}	
 	thread_exit();
 }
 
@@ -448,7 +400,6 @@ int S__TELL(int fd)
 
 int S__WAIT(tid_t pid)
 {
-	printf("WAITING...\n");
 	return (int)process_wait(pid);
 }
 
@@ -519,7 +470,6 @@ struct FD getFileFromFDS(int fd)
 	f.fd = -1;
         for (i = 0; i < MAX_FDS; ++i)
         {
-	//	printf("fds[i].fd = %d", fds[i].fd);
                 if (fds[i].fd == fd)
                 {
                         f = fds[i];

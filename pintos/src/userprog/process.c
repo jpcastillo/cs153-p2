@@ -52,9 +52,7 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  //printf("fname = %s\n", file_name); 
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  //printf("tidname= = %s\n ", get_child_process(tid) -> name);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -106,7 +104,6 @@ process_wait (tid_t child_tid )
   enum intr_level old_level = intr_disable();
   struct thread * cp = get_child_process(child_tid);
   intr_set_level(old_level);
-  //printf("Done Searching! %X\n", cp);
   if(cp == NULL)
 	return -1;
   if(cp -> status == THREAD_DYING)
@@ -115,42 +112,24 @@ process_wait (tid_t child_tid )
   while(!(cp->exit))
   {
 	thread_yield();	
-	//printf("HELLO\n");	
-	//
   } 
  int status = cp -> status;
- //list_remove(&cp -> children_elem);
  return status;
 }
 
 struct thread *
 get_child_process(tid_t child_tid)
 {
-   //printf("CHILD TID = %d\n", child_tid);
-   //printf("%s\n", list_entry(list_begin(&thread_current()->children), struct thread, children_elem) -> name);
-   //printf("%s\n", list_entry(list_rbegin(&thread_current()->children), struct thread, children_elem) -> name);
-   //printf("size of children = %d\n", list_size(&thread_current() -> children));
    struct list_elem *e = NULL;
    struct thread * entry = NULL;
    struct thread * cur = thread_current();
    
-   //ASSERT( intr_get_level() == INTR_OFF );
    for(e = list_begin(&cur -> children); e != list_end(&cur -> children); e = list_next(e))
    {
 	entry = list_entry(e, struct thread, children_elem);
-	//printf("lsit_next(e) %X\n",e);
-	//printf("entry = %X\n", entry);
-	//if(entry == NULL)
-	   //return NULL;
-	printf("Entry = %X\n", entry);
-	printf("Cur = %X\n", cur);
-	//printf("Entry = %X\n", entry);
-	//printf("Cur = %X\n", cur);
 	if(entry != NULL && entry->tid == child_tid && entry -> parent == cur && !entry -> wait)
 	   return entry;
    }
-   //printf("NO CHILD");
-   //no child
    return NULL;
 }
 
@@ -311,19 +290,15 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
 		}
 	}
   }
- // printf("cmd_line = %s\n", cmd_line);
+
   prog = strtok_r(cmd_line," ",&posptr);
   while(prog != NULL)
   {
-   // printf("cmd_line = %s\n", cmd_line);
     argv[argc] = prog;
-   // printf("ARGV: %s\n",argv[argc]);
     argc++;
     argv[argc] = NULL;
     prog = strtok_r(NULL," ",&posptr);
-   // printf("prog = %s\n", prog);
   }
-  //printf("ARGC: %d\n",argc);
   /* end arguement parsing command line */
 
 
@@ -334,10 +309,6 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", argv[0]);
       goto done; 
     }
-  //else
-  //{
-    //printf("load: %s: successful open\n",argv[0]);
-  //}
   file_deny_write(file); // prevent file modify
 
   /* Read and verify executable header. */
@@ -553,13 +524,6 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
       success = install_page (page, kpage, true);
       if (success)
       {
-	 
-	// printf("\n\n");
-	 //char *cmd_copy = palloc_get_page(0); // a
-	 //if( cmd_copy == NULL )
-	  // return false; // a
-	// strlcpy(cmd_copy,command_line,PGSIZE); // a
-	 
 	 *esp = PHYS_BASE;
       }
       else
@@ -572,7 +536,6 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	int i;
 	int t1;
 	 int args[argc];
-	 //printf("esp = %X\n", *esp);
 	 for ( i = argc - 1; i >= 0; i--)
 	 {
 	    t1 = strlen(argv[i]) + 1;
@@ -599,26 +562,18 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	{
 	  *esp -= 4;
 	  offset += 4;
-	  //*esp = args[i];
 	  memcpy(*esp, &args[i], sizeof(char *));
-	 // hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
-	  //printf("args[%d] = %X", i, args[i]);
 	}
-	//printf("\n\n");
-	//printf("Push Argv...\n");
-	//hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+
 	// push &argv
 	char * addr = *esp;	
-	//printf("esp = %X\n", *esp);
 	*esp -= 4;
 	offset += 4;
 	memcpy(*esp,&addr, 4);
-	//hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+
 	// push argc
 	*esp -= 4;
 	offset += 4;
-	//printf("argc = %d\n", (int)argc);
-	//*((uint32_t *) *esp) = argc;
 	memcpy(*esp, &argc, sizeof(argc));
 	
 
@@ -627,17 +582,11 @@ setup_stack (void **esp, int argc, char** argv, const char *command_line)
 	offset += 4;
 
 	memset(*esp,0,4);
-	//hex_dump(0, *esp,(int) ((size_t) PHYS_BASE - (size_t) *esp), true);
-//	printf("\n\n");
-//	palloc_free_page(cmd_copy);
-	//memcpy(thread_current() -> argv, argv, argc * sizeof(char*));
-	//thread_current() -> argv = (char **)malloc(32 * sizeof(char *));
 	if((thread_current() -> argv = (char *) malloc(128 * sizeof(char))) == NULL )
 	{
 		printf("ERROR in malloc()");
 		ASSERT(argv != NULL);
 	}	
-	//printf("ARGV[0] = %s\n", argv[0]);
 	strlcpy(thread_current() -> argv, argv[0], strlen(argv[0]) + 1);	
 	thread_current() -> argc = argc;
   }
